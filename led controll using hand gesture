@@ -1,0 +1,84 @@
+import cv2
+import mediapipe as mp
+import serial
+import time
+
+# Initialize serial communication with Arduino
+try:
+    arduino = serial.Serial(port='COM3', baudrate=9600, timeout=1)
+    time.sleep(2)  # Wait for the serial connection to initialize
+    print("Serial connection established!")
+except Exception as e:
+    print(f"Serial Error: {e}")
+    exit()
+
+# Initialize Mediapipe
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands()
+mp_drawing = mp.solutions.drawing_utils
+
+brightness = 128  # Default brightness (range 0-255)
+
+# Function to detect individual fingers (1 for up, 0 for down)
+def detect_fingers(hand_landmarks):
+    finger_tips = [8, 12, 16, 20]  # Index, Middle, Ring, Pinky
+    finger_states = [0, 0, 0, 0, 0]  # Thumb, Index, Middle, Ring, Pinky
+
+    # Thumb detection using X-coordinates
+    wrist_x = hand_landmarks.landmark[0].x
+    thumb_tip_x = hand_landmarks.landmark[4].x
+    thumb_ip_x = hand_landmarks.landmark[2].x
+
+    if (thumb_tip_x > thumb_ip_x and wrist_x < thumb_tip_x) or (thumb_tip_x < thumb_ip_x and wrist_x > thumb_tip_x):
+        finger_states[0] = 1  # Thumb is up
+    else:
+        finger_states[0] = 0  # Thumb is down
+
+    # Check the other four fingers (Y-coordinates)
+    for idx, tip in enumerate(finger_tips):
+        if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
+            finger_states[idx + 1] = 1  # Finger is up
+
+    return finger_states
+
+# Function to adjust brightness based on hand height
+def adjust_brightness(hand_landmarks):
+    global brightness
+    hand_y = hand_landmarks.landmark[9].y  # Palm center
+    brightness = int((1 - hand_y) * 255)  # Map Y-position to 0-255
+    brightness = max(0, min(255, brightness))  # Limit range
+    print(f"Brightness set to: {brightness}")
+
+# Start capturing video
+cap = cv2.VideoCapture(0)
+
+while cap.isOpened():
+    success, image = cap.read()
+    if not success:
+        print("Camera not detected. Exiting...")
+        break
+
+    image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+    results = hands.process(image)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            fingers_state = detect_fingers(hand_landmarks)
+
+            # Adjust brightness based on hand height
+            adjust_brightness(hand_landmarks)
+
+            # Send data as "10101,128\n" (LED states + brightness)
+            data_to_send = ''.join(map(str, fingers_state)) + f",{brightness}\n"
+            arduino.write(data_to_send.encode())
+            print(f"Data Sent: {data_to_send}")  # Debugging output
+
+    cv2.imshow('Hand Tracking', image)
+    if cv2.waitKey(5) & 0xFF == 27:  # Press ESC to exit
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+arduino.close()
