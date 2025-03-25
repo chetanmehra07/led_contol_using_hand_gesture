@@ -1,0 +1,33 @@
+#define NUM_LEDS 5
+int ledPins[NUM_LEDS] = {5, 6, 9, 10, 11};  // Corrected LED pin mapping
+int brightness = 128;  // Default brightness (0-255)
+
+void setup() {
+  Serial.begin(9600);
+  for (int i = 0; i < NUM_LEDS; i++) {
+    pinMode(ledPins[i], OUTPUT);
+  }
+}
+
+void loop() {
+  if (Serial.available()) {
+    String data = Serial.readStringUntil('\n');  // Read full line
+
+    int separator = data.indexOf(',');  // Find comma position
+    if (separator != -1) {
+      String ledStates = data.substring(0, separator);
+      brightness = data.substring(separator + 1).toInt();  // Extract brightness
+
+      if (ledStates.length() == NUM_LEDS) {
+        for (int i = 0; i < NUM_LEDS; i++) {
+          int state = ledStates[i] - '0';  // Convert ASCII '0'/'1' to int
+          if (state) {
+            analogWrite(ledPins[i], brightness);  // Apply brightness to ON LEDs
+          } else {
+            digitalWrite(ledPins[i], LOW);  // Turn OFF LEDs
+          }
+        }
+      }
+    }
+  }
+}
