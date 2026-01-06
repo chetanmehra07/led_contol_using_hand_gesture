@@ -24,4 +24,22 @@ A real-time LED control system driven by hand gestures using **MediaPipe**, **Op
 4. **Send** corresponding signals over serial to Arduino.
 5. **Control** LEDs (on/off + brightness) using PWM output.
 
-
+## output snapshots
+<table width="100%">
+  <tr>
+    <td width="50%" align="center">
+      <img src="./screenshots/Screenshot 2025-03-26 000405.png" alt="screenshot" />
+    </td>
+    <td width="50%" align="center">
+      <img src="./screenshots/Screenshot 2025-03-26 000348.png" alt="screenshot" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./screenshots/Screenshot 2025-03-26 000418.png" alt="screenshot" />
+    </td>
+    <td width="50%" align="center">
+      <img src="./screenshots/Screenshot 2025-04-05 100338.png" alt="screenshot" />
+    </td>
+  </tr>
+</table>
